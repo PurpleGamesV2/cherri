@@ -1260,7 +1260,7 @@ button.button:hover {
 }
 
 #reset-theme {
-    background: red;
+    background: var(--accent);
     font-size: 40px;
     color: white;
     border-radius: 25px;
