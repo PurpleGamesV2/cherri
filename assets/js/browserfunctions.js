@@ -154,8 +154,19 @@ function nav(i) {
 
   cTab.url = url;
 
-  // Open the actual website directly in a new window
-  window.open(url, '_blank');
+  if (
+    localStorage.getItem("cherri_backend") === "Scramjet" ||
+    localStorage.getItem("cherri_backend") === "scramjet" ||
+    !localStorage.getItem("cherri_backend")
+  ) {
+    fUrl = scramjet.encodeUrl(url);
+  } else if (localStorage.getItem("cherri_backend") === "Ultraviolet") {
+    fUrl = "/uv/service/" + __uv$config.encodeUrl(url);
+  } else {
+    fUrl = scramjet.encodeUrl(url);
+  }
+
+  go(fUrl);
 }
 
 function updateUrlFromIframe(viewframe) {
@@ -231,7 +242,6 @@ async function go(u) {
           if (titleEl) titleEl.textContent = title;
         }
 
-        injectAddressBar(viewframe, cTab.url);
         updateUrlFromIframe(viewframe);
       } catch (e) {
         console.error("Error accessing iframe content:", e);
@@ -241,11 +251,6 @@ async function go(u) {
           if (titleEl) titleEl.textContent = new URL(cTab.url).hostname;
         }
 
-        try {
-          injectAddressBar(viewframe, cTab.url);
-        } catch (e2) {
-          console.log("Could not inject address bar");
-        }
         updateUrlFromIframe(viewframe);
       }
     };
@@ -367,88 +372,4 @@ async function fixProxy() {
     "color: lime; font-weight: bold;",
     "color: white; font-weight: normal;"
   );
-}
-
-function injectAddressBar(viewframe, actualUrl) {
-  try {
-    const iframeDoc = viewframe.contentDocument || viewframe.contentWindow.document;
-    if (!iframeDoc) return;
-
-    // Remove existing address bar if present
-    const existingBar = iframeDoc.getElementById("__cherri_address_bar");
-    if (existingBar) existingBar.remove();
-
-    // Create address bar container
-    const addressBar = document.createElement("div");
-    addressBar.id = "__cherri_address_bar";
-    addressBar.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
-      border-bottom: 2px solid #764ba2;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      z-index: 2147483647;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-sizing: border-box;
-    `;
-
-    // Create URL display
-    const urlText = document.createElement("span");
-    urlText.style.cssText = `
-      flex: 1;
-      word-break: break-all;
-      opacity: 0.95;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    `;
-    urlText.textContent = actualUrl;
-    
-    // Create copy button
-    const copyBtn = document.createElement("button");
-    copyBtn.textContent = "📋";
-    copyBtn.style.cssText = `
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    `;
-    copyBtn.onmouseover = () => copyBtn.style.background = "rgba(255,255,255,0.3)";
-    copyBtn.onmouseout = () => copyBtn.style.background = "rgba(255,255,255,0.2)";
-    copyBtn.onclick = () => {
-      navigator.clipboard.writeText(actualUrl);
-      copyBtn.textContent = "✓";
-      setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
-    };
-
-    addressBar.appendChild(urlText);
-    addressBar.appendChild(copyBtn);
-
-    // Insert at the beginning of body
-    if (iframeDoc.body) {
-      iframeDoc.body.insertBefore(addressBar, iframeDoc.body.firstChild);
-      // Add padding to body to account for the fixed bar
-      const currentPadding = parseInt(window.getComputedStyle(iframeDoc.body).paddingTop) || 0;
-      iframeDoc.body.style.paddingTop = (currentPadding + 40) + "px";
-    } else {
-      // If body doesn't exist yet, try to add it to html
-      iframeDoc.documentElement.insertBefore(addressBar, iframeDoc.documentElement.firstChild);
-    }
-  } catch (e) {
-    console.log("Could not inject address bar:", e);
-  }
 }
